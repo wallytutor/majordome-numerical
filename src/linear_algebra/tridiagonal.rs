@@ -1,7 +1,5 @@
 pub fn tdma_non_destroying_with_memory(
-    a: &[f64],
-    b: &[f64],
-    c: &[f64],
+    matrix: &TridiagonalMatrix,
     d: &[f64],
     c_prime: &mut [f64],
     d_prime: &mut [f64],
@@ -12,18 +10,18 @@ pub fn tdma_non_destroying_with_memory(
         return;
     }
 
-    c_prime[0] = c[0] / b[0];
-    d_prime[0] = d[0] / b[0];
+    c_prime[0] = matrix.c[0] / matrix.b[0];
+    d_prime[0] = d[0] / matrix.b[0];
 
     for i in 1..n - 1 {
-        let m = b[i] - a[i] * c_prime[i - 1];
-        c_prime[i] = c[i] / m;
-        d_prime[i] = (d[i] - a[i] * d_prime[i - 1]) / m;
+        let m = matrix.b[i] - matrix.a[i] * c_prime[i - 1];
+        c_prime[i] = matrix.c[i] / m;
+        d_prime[i] = (d[i] - matrix.a[i] * d_prime[i - 1]) / m;
     }
 
     if n > 1 {
-        let m = b[n - 1] - a[n - 1] * c_prime[n - 2];
-        d_prime[n - 1] = (d[n - 1] - a[n - 1] * d_prime[n - 2]) / m;
+        let m = matrix.b[n - 1] - matrix.a[n - 1] * c_prime[n - 2];
+        d_prime[n - 1] = (d[n - 1] - matrix.a[n - 1] * d_prime[n - 2]) / m;
     }
 
     x[n - 1] = d_prime[n - 1];
@@ -36,9 +34,7 @@ pub fn tdma_non_destroying_with_memory(
 }
 
 pub fn tdma_destroying_with_memory(
-    a: &[f64],
-    b: &mut [f64],
-    c: &mut [f64],
+    matrix: &mut TridiagonalMatrix,
     d: &mut [f64],
     x: &mut [f64],
     n: usize,
@@ -47,25 +43,25 @@ pub fn tdma_destroying_with_memory(
         return;
     }
 
-    c[0] = c[0] / b[0];
-    d[0] = d[0] / b[0];
+    matrix.c[0] /= matrix.b[0];
+    d[0] /= matrix.b[0];
 
     for i in 1..n - 1 {
-        let m = b[i] - a[i] * c[i - 1];
-        c[i] = c[i] / m;
-        d[i] = (d[i] - a[i] * d[i - 1]) / m;
+        let m = matrix.b[i] - matrix.a[i] * matrix.c[i - 1];
+        matrix.c[i] /= m;
+        d[i] = (d[i] - matrix.a[i] * d[i - 1]) / m;
     }
 
     if n > 1 {
-        let m = b[n - 1] - a[n - 1] * c[n - 2];
-        d[n - 1] = (d[n - 1] - a[n - 1] * d[n - 2]) / m;
+        let m = matrix.b[n - 1] - matrix.a[n - 1] * matrix.c[n - 2];
+        d[n - 1] = (d[n - 1] - matrix.a[n - 1] * d[n - 2]) / m;
     }
 
     x[n - 1] = d[n - 1];
 
     if n > 1 {
         for i in (0..n - 1).rev() {
-            x[i] = d[i] - c[i] * x[i + 1];
+            x[i] = d[i] - matrix.c[i] * x[i + 1];
         }
     }
 }
@@ -149,9 +145,7 @@ impl TridiagonalSolver for TridiagonalSolverDestroying {
 
     fn solve(&mut self) -> &[f64] {
         tdma_destroying_with_memory(
-            &self.problem.matrix.a,
-            &mut self.problem.matrix.b,
-            &mut self.problem.matrix.c,
+            &mut self.problem.matrix,
             &mut self.problem.d,
             &mut self.memory.x,
             self.problem.n,
@@ -185,9 +179,7 @@ impl TridiagonalSolver for TridiagonalSolverNonDestroying {
 
     fn solve(&mut self) -> &[f64] {
         tdma_non_destroying_with_memory(
-            &self.problem.matrix.a,
-            &self.problem.matrix.b,
-            &self.problem.matrix.c,
+            &self.problem.matrix,
             &self.problem.d,
             &mut self.memory.c_prime,
             &mut self.memory.d_prime,

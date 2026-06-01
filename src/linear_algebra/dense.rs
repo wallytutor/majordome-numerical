@@ -18,10 +18,15 @@ pub fn dense_gaussian_solver(mut a: Vec<Vec<f64>>, mut b: Vec<f64>) -> Option<Ve
         }
 
         for k in i + 1..n {
-            let factor = a[k][i] / a[i][i];
+            let (left, right) = a.split_at_mut(k);
+            let row_i = &left[i];
+            let row_k = &mut right[0];
+
+            let factor = row_k[i] / row_i[i];
             b[k] -= factor * b[i];
+
             for j in i..n {
-                a[k][j] -= factor * a[i][j];
+                row_k[j] -= factor * row_i[j];
             }
         }
     }

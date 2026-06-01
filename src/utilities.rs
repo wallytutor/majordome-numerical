@@ -13,25 +13,29 @@ pub fn linear_space(start: f64, stop: f64, num: usize) -> Vec<f64> {
     (0..num).map(|i| start + (i as f64) * step).collect()
 }
 
-pub fn geometric_space(start: f64, stop: f64, num: usize, d0: f64, d1: f64) -> Vec<f64> {
+pub fn geometric_space(start: f64, stop: f64, num: usize, d0: f64, d1: f64) -> Result<Vec<f64>, String> {
     if num < 2 {
-        panic!("num must be at least 2");
+        return Err("num must be at least 2".to_string());
     }
+
     if d0 <= 0.0 {
-        panic!("d0 must be positive");
+        return Err("d0 must be positive".to_string());
     }
+
     if d1 <= 0.0 {
-        panic!("d1 must be positive");
+        return Err("d1 must be positive".to_string());
     }
+
     if num == 2 {
-        return vec![start, stop];
+        return Ok(vec![start, stop]);
     }
+
     let n_seg = num - 1;
     let ratio = (d1 / d0).powf(1.0 / ((n_seg - 1) as f64));
     let length = stop - start;
 
     if (1.0 - ratio).abs() < f64::EPSILON * 100.0 {
-        return linear_space(start, stop, num);
+        return Ok(linear_space(start, stop, num));
     }
 
     let sum = d0 * (1.0 - ratio.powi(n_seg as i32)) / (1.0 - ratio);
@@ -41,26 +45,28 @@ pub fn geometric_space(start: f64, stop: f64, num: usize, d0: f64, d1: f64) -> V
     let mut cumulative = 0.0;
     let mut segment = d0;
 
-    for i in 1..=n_seg {
+    for p in points.iter_mut().skip(1) {
         cumulative += segment;
-        points[i] = start + length * (cumulative / sum);
+        *p = start + length * (cumulative / sum);
         segment *= ratio;
     }
 
     points[n_seg] = stop;
-    points
+    Ok(points)
 }
 
-pub fn arange_inclusive(start: f64, stop: f64, step: f64) -> Vec<f64> {
+pub fn arange_inclusive(start: f64, stop: f64, step: f64) -> Result<Vec<f64>, String> {
     if step == 0.0 {
-        panic!("step must be non-zero");
+        return Err("step must be non-zero".to_string());
     }
+
     if start == stop {
-        return vec![start];
+        return Ok(vec![start]);
     }
+
     let span = stop - start;
     if span * step < 0.0 {
-        panic!("step sign does not move from start toward stop");
+        return Err("step sign does not move from start toward stop".to_string());
     }
 
     let mut values = Vec::new();
@@ -82,11 +88,11 @@ pub fn arange_inclusive(start: f64, stop: f64, step: f64) -> Vec<f64> {
         next += step;
     }
 
-    if (*values.last().unwrap() - stop).abs() > eps {
+    if values.last().is_some_and(|&last| (last - stop).abs() > eps) {
         values.push(stop);
     }
 
-    values
+    Ok(values)
 }
 
 #[cfg(test)]
@@ -110,7 +116,7 @@ mod test {
 
     #[test]
     fn test_arange_inclusive() {
-        let a = arange_inclusive(0.0, 1.0, 0.5);
+        let a = arange_inclusive(0.0, 1.0, 0.5).unwrap();
         assert_eq!(a.len(), 3);
         assert_eq!(a[0], 0.0);
         assert_eq!(a[1], 0.5);
