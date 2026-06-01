@@ -8,9 +8,18 @@ use pyo3::prelude::*;
 
 pub mod prelude;
 
-#[pymodule(name = "numerical")]
-pub mod numerical {
-    /// Mathematical constant π (pi).
+mod autodiff;
+mod linear_algebra;
+mod utilities;
+
+#[pymodule(name = "autodiff")]
+pub mod autodiff_py {
     #[pymodule_export]
-    pub const PI: f64 = std::f64::consts::PI;
+    use super::autodiff::PyDual;
+}
+
+#[pymodule]
+pub mod numerical {
+    #[pymodule_export]
+    use super::autodiff_py;
 }
